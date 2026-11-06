@@ -1,0 +1,439 @@
+<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>반응속도 사격장</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: scoreboard strip on top, fixed-ratio range (3 targets over 2, rifle bottom-centre) below. Single deliberate look: paper targets on a pale range wall. */
+:root {
+  --wall: #f3f1ec;
+  --range: #fbfaf7;
+  --ink: #1d2230;
+  --muted: #6b6f7a;
+  --red: #e3110f;
+  --lit: #ffd21f;
+  --decoy: #1f6feb;
+  --good: #1f9d55;
+  --bad: #d23b2a;
+  --wood: #b07a52;
+  --display: "Black Han Sans", "Malgun Gothic", sans-serif;
+  --body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--wall); color: var(--ink); font-family: var(--body); }
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 24px; display: grid; gap: 14px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(1.6rem, 4vw, 2.3rem); margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h1 span { color: var(--red); }
+.sub { margin: 4px 0 0; color: var(--muted); font-size: .95rem; }
+
+.board { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--ink); color: #fff; border-radius: 6px; padding: 6px 12px; min-width: 78px; display: grid; gap: 2px; }
+.stat b { font-family: var(--mono); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.stat small { font-size: .7rem; letter-spacing: .08em; opacity: .7; }
+
+.range {
+  position: relative; width: 100%; aspect-ratio: 1220 / 680; max-width: 100%;
+  background: var(--range); border: 2px solid var(--ink); border-radius: 8px; overflow: hidden;
+  cursor: crosshair; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+.range::after { /* floor line */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 9%;
+  background: repeating-linear-gradient(90deg, #e8e4da 0 40px, #e1dccf 40px 80px); border-top: 2px solid #d5cfbf;
+}
+.target { position: absolute; width: 16.4%; aspect-ratio: 200 / 190; transform: translate(-50%, -50%); }
+.target svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.target .glow { opacity: 0; transition: opacity .08s; }
+.target.lit .glow { opacity: 1; animation: pulse .5s ease-in-out infinite alternate; }
+.target.lit .ring-red { fill: var(--lit); }
+@keyframes pulse { from { filter: drop-shadow(0 0 6px var(--lit)); } to { filter: drop-shadow(0 0 22px var(--lit)); } }
+.target.decoy .glow { opacity: 1; stroke: var(--decoy); animation: pulseb .5s ease-in-out infinite alternate; }
+.target.decoy .ring-red { fill: var(--decoy); }
+@keyframes pulseb { from { filter: drop-shadow(0 0 6px var(--decoy)); } to { filter: drop-shadow(0 0 22px var(--decoy)); } }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; font-size: .9rem; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; box-shadow: 0 0 0 2px var(--ink); }
+.target.hit { animation: shake .25s; }
+@keyframes shake { 25% { transform: translate(-52%, -50%) rotate(-3deg); } 75% { transform: translate(-48%, -50%) rotate(3deg); } }
+
+.hole { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #222; box-shadow: 0 0 0 2px rgba(0,0,0,.25); transform: translate(-50%, -50%); pointer-events: none; z-index: 3; }
+
+.rifle { position: absolute; left: 50.2%; bottom: -3%; width: 5%; height: 38%; transform-origin: 50% 100%; transform: translateX(-50%) rotate(0deg); transition: transform .12s ease-out; z-index: 5; pointer-events: none; }
+.rifle svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.rifle.recoil svg { animation: kick .14s ease-out; }
+@keyframes kick { 30% { transform: translateY(6%); } }
+.flash { opacity: 0; }
+.rifle.recoil .flash { animation: flash .1s; }
+@keyframes flash { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+
+.tracer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+.tracer line { stroke: #ffb300; stroke-width: 3; stroke-linecap: round; opacity: 0; }
+.tracer line.on { animation: tr .15s ease-out; }
+@keyframes tr { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+.pop { position: absolute; transform: translate(-50%, -100%); font-family: var(--display); font-size: clamp(.9rem, 2.4vw, 1.5rem); pointer-events: none; z-index: 6; white-space: nowrap; animation: rise .9s ease-out forwards; text-shadow: 0 2px 0 #fff, 0 0 6px #fff; }
+.pop small { display: block; text-align: center; font-family: var(--mono); font-size: .6em; color: var(--ink); }
+@keyframes rise { to { transform: translate(-50%, -190%); opacity: 0; } }
+
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; z-index: 8; background: rgba(251,250,247,.82); cursor: default; padding: 16px; }
+.card { background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 18px 22px; max-width: 440px; display: grid; gap: 10px; text-align: center; box-shadow: 6px 6px 0 var(--ink); }
+.card h2 { font-family: var(--display); font-weight: 400; margin: 0; font-size: clamp(1.3rem, 3.5vw, 1.9rem); }
+.card p { margin: 0; line-height: 1.55; font-size: .95rem; }
+.card .big { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; color: var(--red); }
+.btn { font-family: var(--display); font-size: 1.15rem; border: 2px solid var(--ink); background: var(--red); color: #fff; padding: 8px 20px; border-radius: 6px; cursor: pointer; justify-self: center; box-shadow: 3px 3px 0 var(--ink); }
+.btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--ink); }
+.btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--lit); outline-offset: 2px; }
+
+.rules { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: .88rem; }
+.rules b { color: var(--ink); font-family: var(--mono); }
+table.tiers { border-collapse: collapse; margin: 0 auto; font-size: .85rem; }
+table.tiers td { padding: 2px 10px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+table.tiers td:first-child { text-align: right; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .target.lit .glow, .target.hit, .rifle.recoil svg, .pop { animation-duration: .01s; }
+}
+.btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.btn.alt { background: #fff; color: var(--ink); }
+.lvl { justify-self: center; font-family: var(--mono); font-size: .75rem; letter-spacing: .1em; background: var(--ink); color: #fff; padding: 3px 10px; border-radius: 4px; }
+.stat.level b { color: var(--lit); }
+
+/* 휴대폰: 사격장 칸이 작아서 안내창이 잘리므로, 안내창을 화면 전체에 띄우고 길면 스크롤 */
+@media (max-width: 640px) {
+  .overlay { position: fixed; overflow-y: auto; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+  .card { margin: auto 0; padding: 16px 16px; }
+}
+
+/* 포트폴리오로 돌아가기 */
+.back { justify-self: start; display: inline-flex; align-items: center; min-height: 44px; margin-bottom: -8px; padding: 0 4px; font-size: .95rem; font-weight: 700; color: var(--muted); text-decoration: none; border-radius: 6px; }
+.back:hover { color: var(--ink); }
+.back:focus-visible { outline: 3px solid var(--lit); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <a class="back" href="/">← 포트폴리오로 돌아가기</a>
+  <div class="top">
+    <div>
+      <h1>반응속도 <span>사격장</span></h1>
+      <p class="sub">불이 들어온 과녁을 최대한 빨리 클릭하세요.</p>
+    </div>
+    <div class="board">
+      <div class="stat level"><small>레벨</small><b id="level">1</b></div>
+      <div class="stat"><small>점수</small><b id="score">0</b></div>
+      <div class="stat"><small>라운드</small><b id="round">0/15</b></div>
+      <div class="stat"><small>평균 반응</small><b id="avg">–</b></div>
+      <div class="stat"><small>최고 기록</small><b id="best">0</b></div>
+    </div>
+  </div>
+
+  <div class="range" id="range">
+    <svg class="tracer" id="tracer" viewBox="0 0 1220 680" preserveAspectRatio="none"><line id="tline" x1="0" y1="0" x2="0" y2="0"></line></svg>
+
+    <div class="rifle" id="rifle">
+      <svg viewBox="0 0 60 400" preserveAspectRatio="none">
+        <g class="flash"><polygon points="30,-38 40,-6 54,-14 38,6 20,6 6,-14 20,-6" fill="#ffcf33"></polygon><circle cx="30" cy="0" r="9" fill="#fff6c2"></circle></g>
+        <rect x="25" y="0" width="10" height="34" fill="#3a3a3a"></rect>
+        <rect x="23" y="22" width="14" height="10" fill="#2b2b2b"></rect>
+        <path d="M22 32 L38 32 L40 360 L44 400 L16 400 L20 360 Z" fill="#b07a52" stroke="#5b3a22" stroke-width="2"></path>
+        <rect x="19" y="150" width="22" height="16" fill="#2b2b2b"></rect>
+        <rect x="21" y="300" width="18" height="10" fill="#555"></rect>
+        <path d="M28 60 L30 340" stroke="#8a5a39" stroke-width="2" fill="none"></path>
+      </svg>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="card" id="card"></div>
+    </div>
+  </div>
+
+  <div class="rules" id="rules"></div>
+</div>
+
+<script>
+(() => {
+  const W = 1220, H = 680;
+  // 과녁은 가운데(x=610)를 기준으로 좌우 대칭, 행마다 같은 높이에 정렬
+  const LEVELS = [
+    { name: '레벨 1', rounds: 15, size: 190, window: 1500, perfect: 250, max: 100, min: 10, penalty: 20, decoy: .2, decoyPenalty: 30,
+      rows: [{ y: 165, xs: [230, 610, 990] }, { y: 400, xs: [420, 800] }] },
+    { name: '레벨 2', rounds: 20, size: 150, window: 1200, perfect: 220, max: 50, min: 5, penalty: 20, decoy: .3, decoyPenalty: 30,
+      rows: [{ y: 120, xs: [205, 475, 745, 1015] }, { y: 330, xs: [205, 475, 745, 1015] }] },
+  ];
+
+  const range = document.getElementById('range');
+  const rifle = document.getElementById('rifle');
+  const tline = document.getElementById('tline');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const $ = id => document.getElementById(id);
+
+  const targetSVG = `<svg viewBox="0 0 200 190">
+    <ellipse class="glow" cx="100" cy="95" rx="104" ry="99" fill="none" stroke="#ffd21f" stroke-width="8"></ellipse>
+    <ellipse class="ring-red" cx="100" cy="95" rx="99" ry="94" fill="#e3110f" stroke="#1d2230" stroke-width="2"></ellipse>
+    <ellipse cx="100" cy="95" rx="73" ry="69" fill="#ffffff"></ellipse>
+    <ellipse class="ring-red" cx="100" cy="95" rx="59" ry="55" fill="#e3110f" stroke="#1d2230" stroke-width="1.5"></ellipse>
+    <ellipse cx="100" cy="95" rx="44" ry="41" fill="#ffffff" stroke="#1d2230" stroke-width="1.5"></ellipse>
+  </svg>`;
+
+  let lv = 0, L = LEVELS[0], POS = [], targets = [];
+  let best = [0, 0];
+  try { best = JSON.parse(localStorage.getItem('rt-best-levels')) || [0, 0]; } catch (e) {}
+
+  function buildTargets() {
+    targets.forEach(t => t.remove());
+    POS = L.rows.flatMap(r => r.xs.map(x => [x, r.y]));
+    targets = POS.map(([x, y]) => {
+      const el = document.createElement('div');
+      el.className = 'target';
+      el.style.left = (x / W * 100) + '%';
+      el.style.top = (y / H * 100) + '%';
+      el.style.width = (L.size / W * 100) + '%';
+      el.innerHTML = targetSVG;
+      range.insertBefore(el, rifle);
+      return el;
+    });
+  }
+
+  let isDecoy = false, held = 0, decoys = 0;
+  let state = 'idle', score = 0, round = 0, lit = -1, litAt = 0, timer = null, times = [], lastLit = -1;
+  let actx = null, resetAim = null;
+
+  function sound(type) {
+    if (!actx) return;
+    const t = actx.currentTime;
+    if (type === 'shot') {
+      const buf = actx.createBuffer(1, actx.sampleRate * .15, actx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 3);
+      const s = actx.createBufferSource(); s.buffer = buf;
+      const g = actx.createGain(); g.gain.value = .5;
+      s.connect(g).connect(actx.destination); s.start(t);
+    } else {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square';
+      o.frequency.value = type === 'good' ? 880 : 160;
+      g.gain.setValueAtTime(.08, t); g.gain.exponentialRampToValueAtTime(.001, t + .15);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .16);
+    }
+  }
+
+  const sec = ms => (ms / 1000).toString().replace(/0+$/, '') + '초';
+
+  function updateBoard() {
+    $('level').textContent = lv + 1;
+    $('score').textContent = score;
+    $('round').textContent = `${round}/${L.rounds}`;
+    $('avg').textContent = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) + 'ms' : '–';
+    $('best').textContent = best[lv] || 0;
+    $('rules').innerHTML = `<span>과녁이 켜진 뒤 <b>${sec(L.window)}</b> 안에 쏘지 않으면 기회가 사라져요.</span><span>불이 켜지기 전에 쏘면 감점이에요.</span><span><b>파란 불빛</b>은 쏘지 말고 꺼질 때까지 기다리세요.</span>`;
+  }
+
+  function pointsFor(rt) {
+    if (rt <= L.perfect) return L.max;
+    return Math.max(L.min, Math.round(L.max - (rt - L.perfect) / (L.window - L.perfect) * (L.max - L.min)));
+  }
+
+  function toLocal(ev) {
+    const r = range.getBoundingClientRect();
+    return [(ev.clientX - r.left) / r.width * W, (ev.clientY - r.top) / r.height * H];
+  }
+
+  function aim(x, y) {
+    const px = W * .502, py = H * 1.03;
+    const r = range.getBoundingClientRect();
+    const sx = r.width / W, sy = r.height / H;
+    const ang = Math.atan2((x - px) * sx, (py - y) * sy) * 180 / Math.PI;
+    rifle.style.transform = `translateX(-50%) rotate(${ang}deg)`;
+    const len = H * .38, rad = ang * Math.PI / 180;
+    return [px + Math.sin(rad) * len * (sy / sx), py - Math.cos(rad) * len];
+  }
+
+  function fire(x, y) {
+    const [mx, my] = aim(x, y);
+    tline.setAttribute('x1', mx); tline.setAttribute('y1', my);
+    tline.setAttribute('x2', x); tline.setAttribute('y2', y);
+    tline.classList.remove('on'); void tline.getBBox(); tline.classList.add('on');
+    rifle.classList.remove('recoil'); void rifle.offsetWidth; rifle.classList.add('recoil');
+    sound('shot');
+    clearTimeout(resetAim);
+    resetAim = setTimeout(() => { rifle.style.transform = 'translateX(-50%) rotate(0deg)'; }, 250);
+  }
+
+  function popup(x, y, text, color, sub) {
+    const p = document.createElement('div');
+    p.className = 'pop';
+    p.style.left = (x / W * 100) + '%';
+    p.style.top = (y / H * 100) + '%';
+    p.style.color = color;
+    p.innerHTML = text + (sub ? `<small>${sub}</small>` : '');
+    range.appendChild(p);
+    setTimeout(() => p.remove(), 900);
+  }
+
+  function hole(x, y) {
+    const h = document.createElement('div');
+    h.className = 'hole';
+    h.style.left = (x / W * 100) + '%';
+    h.style.top = (y / H * 100) + '%';
+    range.appendChild(h);
+    setTimeout(() => h.remove(), 1600);
+  }
+
+  function hitTarget(x, y) {
+    const rx = L.size / 2, ry = L.size * .475;
+    for (let i = 0; i < POS.length; i++) {
+      const dx = (x - POS[i][0]) / rx, dy = (y - POS[i][1]) / ry;
+      if (dx*dx + dy*dy <= 1) return i;
+    }
+    return -1;
+  }
+
+  function unlight() {
+    if (lit >= 0 && targets[lit]) targets[lit].classList.remove('lit', 'decoy');
+    lit = -1;
+  }
+
+  function nextRound() {
+    clearTimeout(timer);
+    unlight();
+    if (round >= L.rounds) return finish();
+    state = 'waiting';
+    timer = setTimeout(() => {
+      let n;
+      do { n = Math.floor(Math.random() * POS.length); } while (n === lastLit);
+      lastLit = n; lit = n; litAt = performance.now();
+      isDecoy = round > 0 && Math.random() < L.decoy;
+      if (isDecoy) decoys++;
+      targets[n].classList.add(isDecoy ? 'decoy' : 'lit');
+      state = 'lit';
+      round++; updateBoard();
+      timer = setTimeout(() => {
+        if (state !== 'lit') return;
+        const [x, y] = POS[lit];
+        if (isDecoy) {
+          held++;
+          popup(x, y - L.size * .3, '잘 참았어요', '#1f6feb');
+          sound('good');
+        } else {
+          popup(x, y - L.size * .3, '놓침', '#6b6f7a', sec(L.window) + ' 초과');
+          sound('bad');
+        }
+        nextRound();
+      }, L.window);
+    }, 600 + Math.random() * 1400);
+  }
+
+  range.addEventListener('pointerdown', ev => {
+    if (state !== 'waiting' && state !== 'lit') return;
+    if (ev.target.closest('.overlay')) return;
+    const [x, y] = toLocal(ev);
+    fire(x, y);
+    const t = hitTarget(x, y);
+    if (t >= 0) hole(x, y);
+
+    if (state === 'waiting') {
+      score -= L.penalty; updateBoard();
+      popup(x, y - 20, '−' + L.penalty, '#d23b2a', '너무 빨라요');
+      sound('bad');
+      nextRound();
+      return;
+    }
+    if (isDecoy) {
+      const p = t === lit ? L.decoyPenalty : L.penalty;
+      score -= p; updateBoard();
+      popup(x, y - 20, '−' + p, '#1f6feb', t === lit ? '파란 불은 쏘면 안 돼요' : '빗나감');
+      sound('bad');
+    } else if (t === lit) {
+      const rt = Math.round(performance.now() - litAt);
+      const pts = pointsFor(rt);
+      score += pts; times.push(rt); updateBoard();
+      targets[t].classList.remove('hit'); void targets[t].offsetWidth; targets[t].classList.add('hit');
+      popup(x, y - 20, (rt <= L.perfect ? 'PERFECT +' : '+') + pts, rt <= L.perfect ? '#e3110f' : '#1f9d55', rt + 'ms');
+      sound('good');
+    } else {
+      score -= L.penalty; updateBoard();
+      popup(x, y - 20, '−' + L.penalty, '#d23b2a', t >= 0 ? '다른 과녁' : '빗나감');
+      sound('bad');
+    }
+    state = 'between';
+    setTimeout(nextRound, 350);
+  });
+
+  function grade(avg) {
+    if (!avg) return '한 발도 못 맞혔어요';
+    if (avg < 350) return '저격수 등급';
+    if (avg < 500) return '명사수 등급';
+    if (avg < 750) return '사수 등급';
+    return '훈련병 등급';
+  }
+
+  function introCard() {
+    card.innerHTML = `
+      <span class="lvl">${L.name.toUpperCase()}</span>
+      <h2>${lv === 0 ? '준비됐나요?' : '과녁이 늘어났어요'}</h2>
+      <p>과녁 <b>${POS.length}개</b>, 총 <b>${L.rounds}발</b>. <b>노란 불빛</b>은 쏘고, <b>파란 불빛</b>은 꺼질 때까지 참으세요.${lv > 0 ? ' 과녁은 작아지고 점수는 짜졌어요.' : ''}</p>
+      <div class="legend"><span><i style="background:var(--lit)"></i>쏘세요</span><span><i style="background:var(--decoy)"></i>쏘면 안 돼요</span></div>
+      <table class="tiers">
+        <tr><td>${sec(L.perfect)} 이내</td><td>${L.max}점</td></tr>
+        <tr><td>${sec(L.perfect)} ~ ${sec(L.window)}</td><td>${L.max} → ${L.min}점</td></tr>
+        <tr><td>${sec(L.window)} 넘음</td><td>놓침 0점</td></tr>
+        <tr><td>엉뚱한 과녁 · 성급한 발사</td><td>−${L.penalty}점</td></tr>
+        <tr><td>파란 불빛 과녁을 쏨</td><td>−${L.decoyPenalty}점</td></tr>
+      </table>
+      <div class="btns"><button class="btn" id="go">사격 시작</button></div>`;
+    $('go').addEventListener('click', start);
+  }
+
+  function setLevel(i) {
+    lv = i; L = LEVELS[i];
+    clearTimeout(timer); unlight();
+    score = 0; round = 0; times = [];
+    buildTargets(); updateBoard(); introCard();
+    overlay.hidden = false; state = 'idle';
+  }
+
+  function finish() {
+    state = 'done';
+    unlight();
+    const avg = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 0;
+    const newBest = score > (best[lv] || 0);
+    if (newBest) { best[lv] = score; try { localStorage.setItem('rt-best-levels', JSON.stringify(best)); } catch (e) {} }
+    updateBoard();
+    const hasNext = lv < LEVELS.length - 1;
+    card.innerHTML = `
+      <span class="lvl">${L.name.toUpperCase()} 결과</span>
+      <h2>${grade(avg)}</h2>
+      <div class="big">${score}점</div>
+      <p>명중 ${times.length}/${L.rounds - decoys}발 · 파란 불 참기 ${held}/${decoys} · 평균 반응 ${avg ? avg + 'ms' : '–'} · 가장 빠름 ${times.length ? Math.min(...times) + 'ms' : '–'}</p>
+      ${newBest ? '<p><b>최고 기록 경신!</b></p>' : ''}
+      <div class="btns">
+        ${hasNext ? `<button class="btn" id="next">${LEVELS[lv+1].name} 도전</button>` : ''}
+        <button class="btn ${hasNext ? 'alt' : ''}" id="again">다시 하기</button>
+        ${lv > 0 ? '<button class="btn alt" id="first">레벨 1로</button>' : ''}
+      </div>`;
+    overlay.hidden = false;
+    $('again').addEventListener('click', start);
+    if (hasNext) { $('next').addEventListener('click', () => setLevel(lv + 1)); $('next').focus(); }
+    else $('again').focus();
+    if (lv > 0) $('first').addEventListener('click', () => setLevel(0));
+  }
+
+  function start() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+    score = 0; round = 0; times = []; lastLit = -1; held = 0; decoys = 0;
+    updateBoard();
+    overlay.hidden = true;
+    state = 'between';
+    setTimeout(nextRound, 300);
+  }
+
+  setLevel(0);
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* PLAN.md 3-2 색상 — bg-primary, text-ink, border-line 처럼 사용 */
+@theme {
+  --color-ink: #1b2440;
+  --color-primary: #2f6bff;
+  --color-coral: #ff5a5f;
+  --color-sunny: #ffc93c;
+  --color-mint: #2ec4b6;
+  --color-bg: #f7f9ff;
+  --color-card: #ffffff;
+  --color-line: #e3e8f5;
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
+
+html {
+  /* 아이폰 입력창 자동 확대 방지: 본문 최소 16px */
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* 스크롤하면 카드가 아래에서 살짝 떠오르며 나타나기
+   - 지원하는 브라우저에서만 (안 되는 브라우저는 그냥 바로 보여요)
+   - "동작 줄이기"를 켠 사람에게는 꺼요
+   - transform 을 써서 카드의 hover 떠오르기(translate)와 겹치지 않아요 */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+/* 인쇄·PDF 저장할 때는 스크롤이 없으니 모든 카드를 바로 보여줘요 */
+@media print {
+  .reveal {
+    animation: none;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  word-break: keep-all;
+}

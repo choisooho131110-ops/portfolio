@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미니 도감 — 원하는 정보만 골라보기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --bg:#F3F5FA; --card:#FFFFFF; --ink:#1F2740; --sub:#6B7390;
+  --line:#E4E8F2; --red:#E3350D; --yellow:#FFCB05; --navy:#2A3B8F;
+  --chip-on:#1F2740; --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'Pretendard',-apple-system,sans-serif;min-height:100vh;padding:32px 16px 64px}
+.wrap{max-width:820px;margin:0 auto}
+.pixel{font-family:'Galmuri11','Pretendard',sans-serif}
+
+header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.lens{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #7EC8FF, #2A6BD4 65%, #17356E);border:4px solid #fff;box-shadow:0 2px 8px rgba(31,39,64,.25);flex-shrink:0}
+header h1{font-size:22px;letter-spacing:-.5px}
+header p{font-size:13px;color:var(--sub);margin-top:2px}
+
+.search-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(31,39,64,.06)}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;min-width:0;font-size:16px;padding:12px 16px;border:2px solid var(--line);border-radius:12px;outline:none;font-family:inherit;background:#FAFBFE}
+.search-row input:focus{border-color:var(--navy)}
+.search-row button{white-space:nowrap;flex-shrink:0;font-size:15px;font-weight:700;padding:12px 22px;border:none;border-radius:12px;background:var(--red);color:#fff;cursor:pointer;font-family:inherit;transition:transform .08s}
+.search-row button:hover{transform:translateY(-1px)}
+.search-row button:active{transform:translateY(0)}
+
+.toggles{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.toggles .label{font-size:12px;color:var(--sub);width:100%;margin-bottom:-2px}
+.chip{font-size:13px;font-weight:600;padding:9px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;font-family:inherit;transition:all .12s}
+.chip[aria-pressed="true"]{background:var(--chip-on);border-color:var(--chip-on);color:#fff}
+.chip:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+.status{margin:28px 0;text-align:center;color:var(--sub);font-size:14px}
+.status .big{font-size:15px;color:var(--ink);font-weight:600;margin-bottom:6px}
+.suggest{margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.suggest button{font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;color:var(--navy);font-weight:600}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ball{width:34px;height:34px;border-radius:50%;margin:0 auto 10px;background:linear-gradient(#E3350D 46%, #1F2740 46%, #1F2740 54%, #fff 54%);position:relative;animation:spin 1s linear infinite}
+.ball::after{content:'';position:absolute;inset:0;margin:auto;width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid #1F2740}
+.mini-loading{font-size:13px;color:var(--sub);padding:6px 0}
+.mini-loading::before{content:'◓ ';color:var(--red)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-top:16px;box-shadow:0 1px 3px rgba(31,39,64,.06)}
+.card h2{font-size:14px;letter-spacing:.5px;color:var(--sub);display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.card h2::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--yellow)}
+.card h2 .note{font-weight:400;font-size:12px}
+.empty{font-size:13.5px;color:var(--sub)}
+
+.profile{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.sprite-box{width:130px;height:130px;border-radius:16px;background:#F6F8FD;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sprite-box img{width:112px;height:112px}
+.profile-info .dex-no{font-size:13px;color:var(--sub)}
+.profile-info .name{font-size:26px;font-weight:800;letter-spacing:-.5px;margin:2px 0 4px}
+.profile-info .genus{font-size:13px;color:var(--sub);margin-bottom:10px}
+.type-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tchip{font-size:12.5px;font-weight:700;color:#fff;padding:4px 12px;border-radius:6px;text-shadow:0 1px 1px rgba(0,0,0,.2)}
+.meta{font-size:13px;color:var(--sub);display:flex;gap:14px;flex-wrap:wrap}
+.meta b{color:var(--ink);font-weight:600}
+
+.stat-row{display:grid;grid-template-columns:74px 44px 1fr;gap:10px;align-items:center;margin-bottom:9px}
+.stat-row .sname{font-size:13px;color:var(--sub);font-weight:600}
+.stat-row .sval{font-size:14px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:12px;border-radius:6px;background:#EEF1F8;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;width:0;transition:width .6s cubic-bezier(.2,.8,.3,1)}
+.total-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.total-row span{font-size:13px;color:var(--sub);font-weight:600}
+.total-row b{font-size:18px;font-weight:800;background:var(--yellow);padding:3px 14px;border-radius:8px;font-variant-numeric:tabular-nums}
+
+.eff-shelf{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+.eff-shelf:last-child{border-bottom:none}
+.mult{font-size:14px;font-weight:800;text-align:center;padding:5px 0;border-radius:8px;font-variant-numeric:tabular-nums}
+.m4{background:#7A0F1D;color:#fff}.m2{background:#E3350D;color:#fff}.m1{background:#EEF1F8;color:var(--sub)}
+.m05{background:#2E7D32;color:#fff}.m025{background:#14532D;color:#fff}.m0{background:#1F2740;color:#fff}
+.eff-types{display:flex;gap:6px;flex-wrap:wrap;padding-top:2px}
+
+/* 기술 목록 */
+.move-list{display:flex;flex-direction:column;gap:8px}
+.move-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#FAFBFE;flex-wrap:wrap}
+.move-row.clickable{min-height:44px}
+.move-row .mname{font-weight:700;font-size:14px}
+.move-row .mmeta{font-size:12px;color:var(--sub);margin-left:auto;display:flex;gap:10px;font-variant-numeric:tabular-nums}
+.move-row .freq{font-size:11.5px;font-weight:700;color:var(--navy);background:#EDF0FC;padding:2px 8px;border-radius:999px}
+.sig-badge{font-size:11px;font-weight:800;color:#fff;background:var(--red);padding:2px 8px;border-radius:999px}
+.tchip.small{font-size:11px;padding:2.5px 9px;border-radius:5px}
+.move-row.clickable{cursor:pointer;transition:background .1s,border-color .1s}
+.item-icon{width:24px;height:24px;object-fit:contain;image-rendering:pixelated;flex-shrink:0}
+.move-row.clickable:hover{background:#F0F3FC;border-color:#C9D2EA}
+.move-row .chev{font-size:11px;color:var(--sub);transition:transform .15s}
+.move-row.open .chev{transform:rotate(180deg)}
+.move-detail{width:100%;order:99;margin-top:8px;padding-top:10px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--ink);line-height:1.7}
+.move-detail .dstat{display:flex;gap:14px;font-size:12.5px;color:var(--sub);margin-top:8px;flex-wrap:wrap}
+.move-detail .dstat b{color:var(--ink)}
+.wiki-link{display:inline-flex;align-items:center;gap:4px;margin-top:10px;font-size:12.5px;font-weight:700;color:var(--navy);text-decoration:none;padding:5px 12px;border:1px solid var(--line);border-radius:999px}
+.wiki-link:hover{background:#F0F3FC}
+.move-detail .mini-loading{padding:2px 0}
+
+/* 모습 그리드 */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.form-cell{text-align:center;border:1px solid var(--line);border-radius:12px;padding:12px 8px;background:#FAFBFE}
+.form-cell img{width:80px;height:80px;image-rendering:pixelated}
+.form-cell .fname{font-size:12.5px;font-weight:600;margin-top:4px;word-break:keep-all}
+
+/* 특성 */
+.abil{padding:12px 0;border-bottom:1px solid var(--line)}
+.abil:last-child{border-bottom:none;padding-bottom:0}
+.abil:first-child{padding-top:0}
+.abil .aname{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.hidden-badge{font-size:11px;font-weight:700;color:#fff;background:var(--navy);padding:2px 8px;border-radius:999px}
+.abil .adesc{font-size:13.5px;color:var(--sub);margin-top:4px;line-height:1.6}
+
+/* 메가 종족값 표 */
+.mega-head{display:flex;gap:14px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.mega-head img{width:90px;height:90px}
+.mega-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+
+.mega-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--sub)}
+.mega-legend .lg{display:inline-flex;align-items:center;gap:6px}
+.mega-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.mstat-block{margin-bottom:14px}
+.mstat-block:last-of-type{margin-bottom:0}
+.mstat-block .mlabel{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.mbar-row{display:grid;grid-template-columns:64px 46px 1fr;gap:8px;align-items:center;margin-bottom:4px}
+.mbar-row .mtag{font-size:11.5px;color:var(--sub);text-align:right}
+.mbar-row .mval{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.mbar-row .mval .d{font-size:10.5px;font-weight:700;margin-left:3px}
+.mbar-row .bar{height:10px}
+.mega-total{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.mega-total .tbox{flex:1;min-width:100px;text-align:center;background:#FAFBFE;border:1px solid var(--line);border-radius:12px;padding:10px 8px}
+.mega-total .tbox .tlabel{font-size:11px;color:var(--sub);margin-bottom:3px}
+.mega-total .tbox .tval{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.mega-total .tbox .tval .d{font-size:11px;margin-left:3px}
+.delta{font-size:11.5px;font-weight:700}
+.delta.up{color:#2E7D32}.delta.down{color:var(--red)}.delta.same{color:var(--sub)}
+
+/* Z기술 / 거다이맥스 */
+.zmove{display:flex;gap:14px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:#FAFBFE;flex-wrap:wrap;margin-bottom:10px}
+.zmove:last-child{margin-bottom:0}
+.zmove .zname{font-weight:800;font-size:15px}
+.zmove .zdetail{font-size:12.5px;color:var(--sub)}
+.gmax-wrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.gmax-wrap img{width:120px;height:120px}
+
+.flavor{font-size:14.5px;line-height:1.75;color:var(--ink)}
+.flavor .ver{font-size:12px;color:var(--sub);margin-top:8px}
+
+footer{margin-top:30px;text-align:center;font-size:12px;color:var(--sub)}
+footer a{color:var(--navy)}
+footer .rights{margin-top:8px;line-height:1.6}
+
+/* 포트폴리오로 돌아가기 */
+.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:-8px 0 12px;padding:0 4px;font-size:14px;font-weight:700;color:var(--sub);text-decoration:none;border-radius:10px}
+.back:hover{color:var(--navy)}
+.back:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+@media (max-width:520px){.stat-row{grid-template-columns:60px 38px 1fr}.profile{gap:14px}}
+@media (prefers-reduced-motion:reduce){.ball{animation:none}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← 포트폴리오로 돌아가기</a>
+  <header>
+    <div class="lens" aria-hidden="true"></div>
+    <div>
+      <h1 class="pixel">미니 도감</h1>
+      <p>포켓몬 이름을 검색하고, 보고 싶은 정보만 골라 보세요</p>
+    </div>
+  </header>
+
+  <div class="search-card">
+    <div class="search-row">
+      <input id="q" list="names" placeholder="예: 피카츄, 리자몽, 뮤츠 (영어도 가능)" autocomplete="off">
+      <datalist id="names"></datalist>
+      <button id="go">검색</button>
+    </div>
+    <div class="toggles" role="group" aria-label="표시할 정보 선택">
+      <span class="label">표시할 정보</span>
+      <button class="chip" data-sec="basic" aria-pressed="true">기본 정보</button>
+      <button class="chip" data-sec="stats" aria-pressed="true">종족치</button>
+      <button class="chip" data-sec="def" aria-pressed="true">방어 상성</button>
+      <button class="chip" data-sec="moves" aria-pressed="false">자주 쓰는 기술</button>
+      <button class="chip" data-sec="items" aria-pressed="false">자주 쓰는 도구</button>
+      <button class="chip" data-sec="sig" aria-pressed="false">전용기</button>
+      <button class="chip" data-sec="forms" aria-pressed="false">모습</button>
+      <button class="chip" data-sec="abil" aria-pressed="false">특성</button>
+      <button class="chip" data-sec="mega" aria-pressed="false">폼별 종족값</button>
+      <button class="chip" data-sec="gmax" aria-pressed="false">거다이맥스</button>
+      <button class="chip" data-sec="zmove" aria-pressed="false">전용 Z기술</button>
+      <button class="chip" data-sec="flavor" aria-pressed="false">도감 설명</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <footer>
+    데이터: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a> + <a href="https://data.pkmn.cc" target="_blank" rel="noopener">Smogon(pkmn)</a> · 한국어 이름 1025종 내장
+    <p class="rights">이 페이지는 공부를 위해 만든 비공식 팬 프로젝트예요.<br>포켓몬의 이름·이미지 등 모든 권리는 Nintendo · Creatures · GAME FREAK · The Pokémon Company에 있어요.</p>
+  </footer>
+</div>
+
+<script>
+const API = 'https://pokeapi.co/api/v2';
+
+const KO_NAMES_PLACEHOLDER = ["이상해씨","이상해풀","이상해꽃","파이리","리자드","리자몽","꼬부기","어니부기","거북왕","캐터피","단데기","버터플","뿔충이","딱충이","독침붕","구구","피죤","피죤투","꼬렛","레트라","깨비참","깨비드릴조","아보","아보크","피카츄","라이츄","모래두지","고지","니드런♀","니드리나","니드퀸","니드런♂","니드리노","니드킹","삐삐","픽시","식스테일","나인테일","푸린","푸크린","주뱃","골뱃","뚜벅쵸","냄새꼬","라플레시아","파라스","파라섹트","콘팡","도나리","디그다","닥트리오","나옹","페르시온","고라파덕","골덕","망키","성원숭","가디","윈디","발챙이","슈륙챙이","강챙이","캐이시","윤겔라","후딘","알통몬","근육몬","괴력몬","모다피","우츠동","우츠보트","왕눈해","독파리","꼬마돌","데구리","딱구리","포니타","날쌩마","야돈","야도란","코일","레어코일","파오리","두두","두트리오","쥬쥬","쥬레곤","질퍽이","질뻐기","셀러","파르셀","고오스","고우스트","팬텀","롱스톤","슬리프","슬리퍼","크랩","킹크랩","찌리리공","붐볼","아라리","나시","탕구리","텅구리","시라소몬","홍수몬","내루미","또가스","또도가스","뿔카노","코뿌리","럭키","덩쿠리","캥카","쏘드라","시드라","콘치","왕콘치","별가사리","아쿠스타","마임맨","스라크","루주라","에레브","마그마","쁘사이저","켄타로스","잉어킹","갸라도스","라프라스","메타몽","이브이","샤미드","쥬피썬더","부스터","폴리곤","암나이트","암스타","투구","투구푸스","프테라","잠만보","프리져","썬더","파이어","미뇽","신뇽","망나뇽","뮤츠","뮤","치코리타","베이리프","메가니움","브케인","마그케인","블레이범","리아코","엘리게이","장크로다일","꼬리선","다꼬리","부우부","야부엉","레디바","레디안","페이검","아리아도스","크로뱃","초라기","랜턴","피츄","삐","푸푸린","토게피","토게틱","네이티","네이티오","메리프","보송송","전룡","아르코","마릴","마릴리","꼬지모","왕구리","통통코","두코","솜솜코","에이팜","해너츠","해루미","왕자리","우파","누오","에브이","블래키","니로우","야도킹","무우마","안농","마자용","키링키","피콘","쏘콘","노고치","글라이거","강철톤","블루","그랑블루","침바루","핫삼","단단지","헤라크로스","포푸니","깜지곰","링곰","마그마그","마그카르고","꾸꾸리","메꾸리","코산호","총어","대포무노","딜리버드","만타인","무장조","델빌","헬가","킹드라","코코리","코리갑","폴리곤2","노라키","루브도","배루키","카포에라","뽀뽀라","에레키드","마그비","밀탱크","해피너스","라이코","앤테이","스이쿤","애버라스","데기라스","마기라스","루기아","칠색조","세레비","나무지기","나무돌이","나무킹","아차모","영치코","번치코","물짱이","늪짱이","대짱이","포챠나","그라에나","지그제구리","직구리","개무소","실쿤","뷰티플라이","카스쿤","독케일","연꽃몬","로토스","로파파","도토링","잎새코","다탱구","테일로","스왈로","갈모매","패리퍼","랄토스","킬리아","가디안","비구술","비나방","버섯꼬","버섯모","게을로","발바로","게을킹","토중몬","아이스크","껍질몬","소곤룡","노공룡","폭음룡","마크탕","하리뭉","루리리","코코파스","에나비","델케티","깜까미","입치트","가보리","갱도라","보스로라","요가랑","요가램","썬더라이","썬더볼트","플러시","마이농","볼비트","네오비트","로젤리아","꼴깍몬","꿀꺽몬","샤프니아","샤크니아","고래왕자","고래왕","둔타","폭타","코터스","피그점프","피그킹","얼루기","톱치","비브라바","플라이곤","선인왕","밤선인","파비코","파비코리","쟝고","세비퍼","루나톤","솔록","미꾸리","메깅","가재군","가재장군","오뚝군","점토도리","릴링","릴리요","아노딥스","아말도","빈티나","밀로틱","캐스퐁","켈리몬","어둠대신","다크펫","해골몽","미라몽","트로피우스","치렁","앱솔","마자","눈꼬마","얼음귀신","대굴레오","씨레오","씨카이저","진주몽","헌테일","분홍장이","시라칸","사랑동이","아공이","쉘곤","보만다","메탕","메탕구","메타그로스","레지락","레지아이스","레지스틸","라티아스","라티오스","가이오가","그란돈","레쿠쟈","지라치","테오키스","모부기","수풀부기","토대부기","불꽃숭이","파이숭이","초염몽","팽도리","팽태자","엠페르트","찌르꼬","찌르버드","찌르호크","비버니","비버통","귀뚤뚜기","귀뚤톡크","꼬링크","럭시오","렌트라","꼬몽울","로즈레이드","두개도스","램펄드","방패톱스","바리톱스","도롱충이","도롱마담","나메일","세꿀버리","비퀸","파치리스","브이젤","플로젤","체리버","체리꼬","깝질무","트리토돈","겟핸보숭","흔들풍손","둥실라이드","이어롤","이어롭","무우마직","돈크로우","나옹마","몬냥이","랑딸랑","스컹뿡","스컹탱크","동미러","동탁군","꼬지지","흉내내","핑복","페라페","화강돌","딥상어동","한바이트","한카리아스","먹고자","리오르","루카리오","히포포타스","하마돈","스콜피","드래피온","삐딱구리","독개굴","무스틈니","형광어","네오라이트","타만타","눈쓰개","눈설왕","포푸니라","자포코일","내룸벨트","거대코뿌리","덩쿠림보","에레키블","마그마번","토게키스","메가자리","리피아","글레이시아","글라이온","맘모꾸리","폴리곤Z","엘레이드","대코파스","야느와르몽","눈여아","로토무","유크시","엠라이트","아그놈","디아루가","펄기아","히드런","레지기가스","기라티나","크레세리아","피오네","마나피","다크라이","쉐이미","아르세우스","비크티니","주리비얀","샤비","샤로다","뚜꾸리","차오꿀","염무왕","수댕이","쌍검자비","대검귀","보르쥐","보르그","요테리","하데리어","바랜드","쌔비냥","레파르다스","야나프","야나키","바오프","바오키","앗차프","앗차키","몽나","몽얌나","콩둘기","유토브","켄호로우","줄뮤마","제브라이카","단굴","암트르","기가이어스","또르박쥐","맘박쥐","두더류","몰드류","다부니","으랏차","토쇠골","노보청","동챙이","두까비","두빅굴","던지미","타격귀","두르보","두르쿤","모아머","마디네","휠구","펜드라","소미안","엘풍","치릴리","드레디어","배쓰나이","깜눈크","악비르","악비아르","달막화","불비달마","마라카치","돌살이","암팰리스","곤율랭","곤율거니","심보러","데스마스","데스니칸","프로토가","늑골라","아켄","아케오스","깨봉이","더스트나","조로아","조로아크","치라미","치라치노","고디탱","고디보미","고디모아젤","유니란","듀란","란쿨루스","꼬지보리","스완나","바닐프티","바닐리치","배바닐라","사철록","바라철록","에몽가","딱정곤","슈바르고","깜놀버슬","뽀록나","탱그릴","탱탱겔","맘복치","파쪼옥","전툴라","철시드","너트령","기어르","기기어르","기기기어르","저리어","저리릴","저리더프","리그레","벰크","불켜미","램프라","샹델라","터검니","액슨도","액스라이즈","코고미","툰베어","프리지오","쪼마리","어지리더","메더","비조푸","비조도","크리만","골비람","골루그","자망칼","절각참","버프론","수리둥보","워글","벌차이","버랜지나","앤티골","아이앤트","모노두","디헤드","삼삼드래","활화르바","불카모스","코바르온","테라키온","비리디온","토네로스","볼트로스","레시라무","제크로무","랜드로스","큐레무","케르디오","메로엣타","게노세크트","도치마론","도치보구","브리가론","푸호꼬","테르나","마폭시","개구마르","개굴반장","개굴닌자","파르빗","파르토","화살꼬빈","불화살빈","파이어로","분이벌레","분떠도리","비비용","레오꼬","화염레오","플라베베","플라엣테","플라제스","메이클","고고트","판짱","부란다","트리미앙","냐스퍼","냐오닉스","단칼빙","쌍검킬","킬가르도","슈쁘","프레프티르","나룸퍼프","나루림","오케이징","칼라마네로","거북손손","거북손데스","수레기","드래캄","완철포","블로스터","목도리키텔","일레도리자드","티고라스","견고라스","아마루스","아마루르가","님피아","루차불","데덴네","멜리시","미끄메라","미끄네일","미끄래곤","클레피","나목령","대로트","호바귀","펌킨인","꽁어름","크레베이스","음뱃","음번","제르네아스","이벨타르","지가르데","디안시","후파","볼케니온","나몰빼미","빼미스로우","모크나이퍼","냐오불","냐오히트","어흥염","누리공","키요공","누리레느","콕코구리","크라파","왕큰부리","영구스","형사구스","턱지충이","전지충이","투구뿌논","오기지게","모단단게","춤추새","에블리","에리본","암멍이","루가루암","약어리","시마사리","더시마사리","머드나기","만마드","물거미","깨비물거미","짜랑랑","라란티스","자마슈","마셰이드","야도뇽","염뉴트","포곰곰","이븐곰","달콤아","달무리나","달코퀸","큐아링","하랑우탄","내던숭이","꼬시레","갑주무사","모래꿍","모래성이당","해무기","타입:널","실버디","메테노","자말라","폭거북스","토게데마루","따라큐","치갈기","할비롱","타타륜","짜랑꼬","짜랑고우","짜랑고우거","카푸꼬꼬꼭","카푸나비나","카푸브루루","카푸느지느","코스모그","코스모움","솔가레오","루나아라","텅비드","매시붕","페로코체","전수목","철화구야","종이신도","악식킹","네크로즈마","마기아나","마샤도","베베놈","아고용","차곡차곡","두파팡","제라오라","멜탄","멜메탈","흥나숭","채키몽","고릴타","염버니","래비풋","에이스번","울머기","누겔레온","인텔리레온","탐리스","요씽리스","파라꼬","파크로우","아머까오","두루지벌레","레돔벌레","이올브","훔처우","폭슬라이","꼬모카","백솜모카","우르","배우르","깨물부기","갈가부기","멍파치","펄스멍","탄동","탄차곤","석탄산","과사삭벌레","애프룡","단지래플","모래뱀","사다이사","윽우지","찌로꼬치","꼬치조","일레즌","스트린더","태우지네","다태우지네","때때무노","케오퍼스","데인차","포트데스","몸지브림","손지브림","브리무음","메롱꿍","쏘겨모","오롱털","가로막구리","나이킹","산호르곤","창파나이트","마임꽁꽁","데스판","마빌크","마휘핑","대여르","찌르성게","누니머기","모스노우","돌헨진","빙큐보","에써르","모르페코","끼리동","대왕끼리동","파치래곤","파치르돈","어래곤","어치르돈","두랄루돈","드라꼰","드래런치","드래펄트","자시안","자마젠타","무한다이노","치고마","우라오스","자루도","레지에레키","레지드래고","블리자포스","레이스포스","버드렉스","신비록","사마자르","다투곰","대쓰여너","포푸니크","장침바루","러브로스","나오하","나로테","마스카나","뜨아거","악뜨거","라우드본","꾸왁스","아꾸왁","웨이니발","맛보돈","퍼퓨돈","타랜툴라","트래피더","콩알뚜기","엑스레그","빠모","빠모트","빠르모트","두리쥐","파밀리쥐","쫀도기","바우첼","미니브","올리뇨","올리르바","시비꼬","베베솔트","스태솔트","콜로솔트","카르본","카디나르마","파라블레이즈","빈나두","찌리배리","찌리비","찌리비크","오라티프","마피티프","땃쭈르","태깅구르","그푸리","공푸리","들눈해","육파리","절벼게","캡싸이","스코빌런","구르데","베라카스","하느라기","클레스퍼트라","어리짱","벼리짱","두드리짱","바다그다","바닥트리오","떨구새","맨돌핀","돌핀맨","부르롱","부르르룸","모토마","꿈트렁","초롱순","킬라플로르","망망이","묘두기","꼬이밍고","터벅고래","우락고래","가비루사","어써러셔","싸리용","저승갓숭","토오","키키링","노고고치","대도각참","위대한엄니","우렁찬꼬리","사나운버섯","날개치는머리","땅을기는날개","모래털가죽","무쇠바퀴","무쇠보따리","무쇠손","무쇠머리","무쇠독나방","무쇠가시","드니차","드니꽁","드닐레이브","모으령","타부자고","총지엔","파오젠","딩루","위유이","고동치는달","무쇠무인","코라이돈","미라이돈","굽이치는물결","무쇠잎새","과미르","차데스","그우린차","조타구","이야후","기로치","오거폰","브리두라스","과미드라","꿰뚫는화염","날뛰는우레","무쇠암석","무쇠감투","테라파고스","복숭악동"];
+
+const TYPE_KO = {normal:'노말',fighting:'격투',flying:'비행',poison:'독',ground:'땅',rock:'바위',bug:'벌레',ghost:'고스트',steel:'강철',fire:'불꽃',water:'물',grass:'풀',electric:'전기',psychic:'에스퍼',ice:'얼음',dragon:'드래곤',dark:'악',fairy:'페어리'};
+const TYPE_COLOR = {normal:'#9FA19F',fighting:'#C03028',flying:'#81B9EF',poison:'#9141CB',ground:'#B8860B',rock:'#AFA981',bug:'#91A119',ghost:'#704170',steel:'#60A1B8',fire:'#E62829',water:'#2980EF',grass:'#3FA129',electric:'#E7B10A',psychic:'#EF4179',ice:'#3DCEF3',dragon:'#5060E1',dark:'#50413F',fairy:'#EF70EF'};
+const STAT_KO = {hp:'HP',attack:'공격',defense:'방어','special-attack':'특수공격','special-defense':'특수방어',speed:'스피드'};
+const CLASS_KO = {physical:'물리',special:'특수',status:'변화'};
+const ALL_TYPES = Object.keys(TYPE_KO);
+
+/* 폼 접미사 한국어 라벨 */
+const FORM_KO = {mega:'메가', x:'X', y:'Y', gmax:'거다이맥스', alola:'알로라', galar:'가라르', hisui:'히스이', paldea:'팔데아', starter:'파트너', origin:'오리진폼', altered:'어나더폼', therian:'영물폼', incarnate:'화신폼', primal:'원시', attack:'어택폼', defense:'디펜스폼', speed:'스피드폼', normal:'노말폼', 'rock-star':'록스타', belle:'마드모아젤', 'pop-star':'팝스타', phd:'박사', libre:'마스크드', cosplay:'코스프레', cap:'모자', original:'오리지널', hoenn:'호연', sinnoh:'신오', unova:'하나', kalos:'칼로스', world:'월드', partner:'파트너', 'low-key':'로우한 모습', amped:'하이한 모습', 'single-strike':'일격의 태세', 'rapid-strike':'연격의 태세', female:'암컷', male:'수컷', plant:'초목도롱', sandy:'모래도롱', trash:'슈레도롱', 'dusk-mane':'황혼의 갈기', 'dawn-wings':'새벽의 날개', ultra:'울트라', dusk:'황혼의 갈기', dawn:'새벽의 날개', black:'블랙', white:'화이트', heat:'히트로토무', wash:'워시로토무', frost:'프로스트로토무', fan:'선풍로토무', mow:'커트로토무', sky:'스카이폼', crowned:'왕관을 쓴 모습', eternamax:'이터너맥스', hero:'히어로폼', complete:'퍼펙트폼', school:'무리 모습'};
+
+/* 전용 Z기술 보유 종 매핑 (종 슬러그 → 기술 슬러그) */
+const Z_MOVES = {
+  pikachu:['catastropika','10-000-000-volt-thunderbolt'], raichu:['stoked-sparksurfer'],
+  eevee:['extreme-evoboost'], snorlax:['pulverizing-pancake'], mew:['genesis-supernova'],
+  decidueye:['sinister-arrow-raid'], incineroar:['malicious-moonsault'], primarina:['oceanic-operetta'],
+  lycanroc:['splintered-stormshards'], mimikyu:['lets-snuggle-forever'], 'kommo-o':['clangorous-soulblaze'],
+  marshadow:['soul-stealing-7-star-strike'],
+  'tapu-koko':['guardian-of-alola'], 'tapu-lele':['guardian-of-alola'], 'tapu-bulu':['guardian-of-alola'], 'tapu-fini':['guardian-of-alola'],
+  solgaleo:['searing-sunraze-smash'], lunala:['menacing-moonraze-maelstrom'],
+  necrozma:['searing-sunraze-smash','menacing-moonraze-maelstrom','light-that-burns-the-sky']
+};
+
+/* 전용 거다이맥스 기술 (PokéAPI에 없어 영문명 내장) */
+const GMAX_MOVES = {venusaur:'거다이편달', charizard:'거다이옥염', blastoise:'거다이포격', butterfree:'거다이고혹', pikachu:'거다이만뢰', meowth:'거다이금화', machamp:'거다이회심격', gengar:'거다이환영', kingler:'거다이포말', lapras:'거다이선율', eevee:'거다이포옹', snorlax:'거다이재생', garbodor:'거다이악취', melmetal:'거다이융격', rillaboom:'거다이난타', cinderace:'거다이화염구', inteleon:'거다이저격', corviknight:'거다이풍격', orbeetle:'거다이천도', drednaw:'거다이암진', coalossal:'거다이분석', flapple:'거다이산격', appletun:'거다이감로', sandaconda:'거다이사진', toxtricity:'거다이감전', centiskorch:'거다이백화', hatterene:'거다이천벌', grimmsnarl:'거다이수마', alcremie:'거다이단원', copperajah:'거다이강철진', duraludon:'거다이감쇠', urshifu:'거다이일격 / 거다이연격'};
+
+const typeCache = new Map();
+const moveCache = new Map();
+let smogonPromise = null;
+const sections = {basic:true, stats:true, def:true, moves:false, items:false, sig:false, forms:false, abil:false, mega:false, gmax:false, zmove:false, flavor:false};
+let lastData = null;
+let searchToken = 0;
+
+const $ = s => document.querySelector(s);
+const out = $('#out');
+const koNames = KO_NAMES_PLACEHOLDER;
+$('#names').innerHTML = koNames.map(n => `<option value="${n}">`).join('');
+
+document.querySelectorAll('.chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    const on = ch.getAttribute('aria-pressed') === 'true';
+    ch.setAttribute('aria-pressed', String(!on));
+    sections[ch.dataset.sec] = !on;
+    if (lastData) render(lastData);
+  });
+});
+$('#go').addEventListener('click', search);
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+function nameToId(input) {
+  const q = input.trim().normalize('NFC');
+  if (!q) return null;
+  if (/^\d+$/.test(q)) return {id:+q};
+  const i = koNames.findIndex(n => n === q);
+  if (i >= 0) return {id:i+1};
+  return {slug:q.toLowerCase().replace(/\s+/g,'-')};
+}
+function similar(q) {
+  const nq = q.normalize('NFC');
+  return koNames.filter(n => n.includes(nq)).slice(0,5);
+}
+async function jget(url) {
+  let r;
+  try {
+    r = await fetch(url);
+  } catch(e) {
+    const err = new Error('NETWORK_BLOCKED');
+    err.isNetwork = true;
+    throw err;
+  }
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function getType(name) {
+  if (!typeCache.has(name)) typeCache.set(name, (await jget(`${API}/type/${name}`)).damage_relations);
+  return typeCache.get(name);
+}
+function slugifyMove(en) {
+  return en.toLowerCase().replace(/[’'.]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+async function getMove(slug) {
+  if (moveCache.has(slug)) return moveCache.get(slug);
+  const p = (async () => {
+    try {
+      const m = await jget(`${API}/move/${slug}`);
+      const ko = m.names.find(n=>n.language.name==='ko');
+      return {ko: ko?ko.name:m.name, type:m.type.name, power:m.power, cls:m.damage_class?.name, learnedBy:m.learned_by_pokemon, slug: m.name};
+    } catch(e) {
+      if (slug.startsWith('hidden-power-')) return getMove('hidden-power');
+      return null;
+    }
+  })();
+  moveCache.set(slug, p);
+  return p;
+}
+function getSmogon() {
+  if (!smogonPromise) smogonPromise = fetch('https://data.pkmn.cc/sets/gen9.json').then(r=>r.json()).catch(()=>null);
+  return smogonPromise;
+}
+
+async function search() {
+  const q = $('#q').value.trim();
+  if (!q) return;
+  const key = nameToId(q);
+  const token = ++searchToken;
+  out.innerHTML = `<div class="status"><div class="ball"></div>도감을 넘기는 중...</div>`;
+  try {
+    const ref = key.id ?? key.slug;
+    const p = await jget(`${API}/pokemon/${ref}`);
+    const sp = await jget(p.species.url);
+
+    const mult = {}; ALL_TYPES.forEach(t => mult[t] = 1);
+    for (const t of p.types) {
+      const rel = await getType(t.type.name);
+      rel.double_damage_from.forEach(x => mult[x.name] *= 2);
+      rel.half_damage_from.forEach(x => mult[x.name] *= 0.5);
+      rel.no_damage_from.forEach(x => mult[x.name] *= 0);
+    }
+    const abilities = await Promise.all(p.abilities.map(async a => {
+      const d = await jget(a.ability.url);
+      const ko = d.names.find(n => n.language.name === 'ko');
+      const flavs = d.flavor_text_entries.filter(f=>f.language.name==='ko');
+      return {name: ko ? ko.name : a.ability.name, hidden: a.is_hidden,
+              desc: flavs.length ? flavs[flavs.length-1].flavor_text.replace(/\s+/g,' ') : ''};
+    }));
+    if (token !== searchToken) return;
+    lastData = {token, p, sp, mult, abilities, extra:{}, loading:{}};
+    render(lastData);
+  } catch(e) {
+    if (token !== searchToken) return;
+    if (e && e.isNetwork) {
+      out.innerHTML = `<div class="status">
+        <div class="big">인터넷 요청이 막혀 있어요</div>
+        이 페이지를 "미리보기"나 메신저 내장 뷰어로 열면 검색이 안 될 수 있어요.<br>
+        Chrome이나 Safari 같은 정식 브라우저 앱으로 파일을 열어보세요.
+      </div>`;
+      return;
+    }
+    const sug = similar(q);
+    out.innerHTML = `<div class="status">
+      <div class="big">'${q}' 을(를) 찾지 못했어요</div>
+      한국어 정식 명칭 또는 영어 이름으로 검색해 보세요.
+      ${sug.length ? `<div class="suggest">${sug.map(s=>`<button onclick="pick('${s}')">${s}</button>`).join('')}</div>` : ''}
+    </div>`;
+  }
+}
+function pick(name){ $('#q').value = name; search(); }
+function tchip(t, small){ return `<span class="tchip${small?' small':''}" style="background:${TYPE_COLOR[t]||'#9FA19F'}">${TYPE_KO[t]||t}</span>`; }
+function statColor(v){ return v<50?'#E3350D':v<80?'#F0A02C':v<110?'#3FA129':'#2A6BD4'; }
+function formLabel(varName, base){
+  if (varName === base) return '기본';
+  let sfx = varName.startsWith(base+'-') ? varName.slice(base.length+1) : varName;
+  // 긴 토큰 먼저 매칭
+  const parts = [];
+  let rest = sfx;
+  while (rest) {
+    const keys = Object.keys(FORM_KO).sort((a,b)=>b.length-a.length);
+    const hit = keys.find(k => rest === k || rest.startsWith(k+'-'));
+    if (hit) { parts.push(FORM_KO[hit]); rest = rest.slice(hit.length).replace(/^-/,''); }
+    else { const tok = rest.split('-')[0]; parts.push(tok); rest = rest.slice(tok.length).replace(/^-/,''); }
+  }
+  return parts.join(' ');
+}
+let moveRowSeq = 0;
+function moveRow(m, extraHtml){
+  if (!m) return '';
+  const rid = 'mv' + (moveRowSeq++);
+  const canClick = !!m.slug;
+  return `<div class="move-row${canClick?' clickable':''}" data-slug="${m.slug||''}" data-rid="${rid}" ${canClick?'role="button" tabindex="0"':''} aria-expanded="false">
+    ${tchip(m.type, true)}
+    <span class="mname">${m.ko}</span>
+    ${extraHtml||''}
+    <span class="mmeta">
+      ${m.cls ? `<span>${CLASS_KO[m.cls]||m.cls}</span>` : ''}
+      <span>위력 ${m.power ?? '—'}</span>
+      ${canClick?'<span class="chev">▾</span>':''}
+    </span>
+  </div>`;
+}
+const moveDetailCache = new Map();
+async function getMoveDetail(slug) {
+  if (moveDetailCache.has(slug)) return moveDetailCache.get(slug);
+  const p = (async () => {
+    try {
+      const m = await jget(`${API}/move/${slug}`);
+      const ko = m.names.find(n=>n.language.name==='ko');
+      const flavs = m.flavor_text_entries.filter(f=>f.language.name==='ko');
+      const desc = flavs.length ? flavs[flavs.length-1].flavor_text.replace(/\s+/g,' ') : null;
+      return {ko: ko?ko.name:m.name, desc, accuracy:m.accuracy, pp:m.pp, priority:m.priority};
+    } catch(e){ return null; }
+  })();
+  moveDetailCache.set(slug, p);
+  return p;
+}
+document.addEventListener('click', async (e) => {
+  const row = e.target.closest('.move-row.clickable');
+  if (!row) return;
+  const slug = row.dataset.slug;
+  if (!slug) return;
+  const isOpen = row.classList.contains('open');
+  // 같은 컨테이너 내 다른 열린 행 닫기는 하지 않음 — 여러 개 동시에 볼 수 있게
+  if (isOpen) {
+    row.classList.remove('open');
+    row.setAttribute('aria-expanded','false');
+    const panel = row.querySelector('.move-detail');
+    if (panel) panel.remove();
+    return;
+  }
+  row.classList.add('open');
+  row.setAttribute('aria-expanded','true');
+  const panel = document.createElement('div');
+  panel.className = 'move-detail';
+  panel.innerHTML = `<div class="mini-loading">설명 불러오는 중...</div>`;
+  row.appendChild(panel);
+  const detail = await getMoveDetail(slug);
+  if (!row.isConnected || !row.classList.contains('open')) return;
+  if (!detail) {
+    panel.innerHTML = `<span style="color:var(--sub)">설명을 불러오지 못했어요.</span>`;
+    return;
+  }
+  const wikiUrl = 'https://namu.wiki/Search?q=' + encodeURIComponent(detail.ko);
+  panel.innerHTML = `
+    <div>${detail.desc || '공식 기술 설명이 등록되어 있지 않아요.'}</div>
+    <div class="dstat">
+      <span>명중률 <b>${detail.accuracy ?? '—'}</b></span>
+      <span>PP <b>${detail.pp ?? '—'}</b></span>
+      <span>우선도 <b>${detail.priority>0?'+':''}${detail.priority ?? 0}</b></span>
+    </div>
+    <a class="wiki-link" href="${wikiUrl}" target="_blank" rel="noopener">나무위키에서 자세히 보기 ↗</a>`;
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('move-row')) {
+    e.preventDefault(); e.target.click();
+  }
+});
+
+/* ── 지연 로딩 섹션들 ── */
+async function ensure(key, loader) {
+  const d = lastData;
+  if (!d || d.extra[key] !== undefined || d.loading[key]) return;
+  d.loading[key] = true;
+  try { const val = await loader(d); if (lastData && lastData.token === d.token) { d.extra[key] = val; } }
+  catch(e) { if (lastData && lastData.token === d.token) d.extra[key] = {error:true}; }
+  finally { if (lastData && lastData.token === d.token) { d.loading[key] = false; render(lastData); } }
+}
+
+async function loadMoves(d) {
+  const enName = d.sp.names.find(n=>n.language.name==='en')?.name ?? d.p.name;
+  const smogon = await getSmogon();
+  const entry = smogon ? smogon[enName] : null;
+  if (entry) {
+    const counts = new Map();
+    const formats = Object.keys(entry);
+    for (const fmt of formats) for (const setName of Object.keys(entry[fmt])) {
+      const mv = entry[fmt][setName].moves || [];
+      mv.flat().forEach(en => counts.set(en, (counts.get(en)||0)+1));
+    }
+    const top = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const details = await Promise.all(top.map(async ([en,c]) => ({en, c, m: await getMove(slugifyMove(en))})));
+    return {mode:'smogon', formats, moves:details};
+  }
+  // Smogon 데이터 없음 → 최신 레벨업 기술로 대체
+  const vgCount = {};
+  d.p.moves.forEach(mv => mv.version_group_details.forEach(v => {
+    if (v.move_learn_method.name==='level-up') vgCount[v.version_group.name]=(vgCount[v.version_group.name]||0)+1;
+  }));
+  const bestVg = Object.entries(vgCount).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  if (!bestVg) return {mode:'none'};
+  const lv = [];
+  d.p.moves.forEach(mv => {
+    const det = mv.version_group_details.find(v=>v.version_group.name===bestVg && v.move_learn_method.name==='level-up');
+    if (det) lv.push({slug:mv.move.name, level:det.level_learned_at});
+  });
+  lv.sort((a,b)=>a.level-b.level);
+  const details = await Promise.all(lv.slice(0,20).map(async x => ({level:x.level, m:await getMove(x.slug)})));
+  return {mode:'levelup', vg:bestVg, moves:details};
+}
+
+const itemCache = new Map();
+function slugifyItem(en) {
+  return en.toLowerCase().replace(/[’'.]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+async function getItem(slug) {
+  if (itemCache.has(slug)) return itemCache.get(slug);
+  const p = (async () => {
+    try {
+      let it;
+      try { it = await jget(`${API}/item/${slug}`); }
+      catch(e) {
+        // Z크리스탈은 PokéAPI에서 "xxxium-z--held" 형태 슬러그를 씀
+        if (/-z$/.test(slug)) it = await jget(`${API}/item/${slug}--held`);
+        else throw e;
+      }
+      const ko = it.names.find(n=>n.language.name==='ko');
+      return {ko: ko?ko.name:it.name, sprite: it.sprites?.default};
+    } catch(e) { return null; }
+  })();
+  itemCache.set(slug, p);
+  return p;
+}
+async function loadItems(d) {
+  const enName = d.sp.names.find(n=>n.language.name==='en')?.name ?? d.p.name;
+  const smogon = await getSmogon();
+  const entry = smogon ? smogon[enName] : null;
+  if (!entry) return {mode:'none'};
+  const counts = new Map();
+  const formats = Object.keys(entry);
+  for (const fmt of formats) for (const setName of Object.keys(entry[fmt])) {
+    const it = entry[fmt][setName].item;
+    if (!it) continue;
+    (Array.isArray(it) ? it : [it]).forEach(en => {
+      if (en.trim().toLowerCase() === 'no item') return;
+      counts.set(en, (counts.get(en)||0)+1);
+    });
+  }
+  if (!counts.size) return {mode:'none'};
+  const top = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const details = await Promise.all(top.map(async ([en,c]) => ({en, c, it: await getItem(slugifyItem(en))})));
+  return {mode:'smogon', formats, items:details};
+}
+
+async function loadSig(d) {
+  const evo = await jget(d.sp.evolution_chain.url);
+  const family = [];
+  (function walk(node){ family.push(node.species.name); node.evolves_to.forEach(walk); })(evo.chain);
+  // 이 종의 다른 폼(메가/블랙큐레무/황혼의갈기 등)도 전용기 판별 대상에 포함
+  const varietyNames = d.sp.varieties.map(v=>v.pokemon.name);
+  const familyAll = [...new Set([...family, ...varietyNames])];
+  // DNA 다이버로 융합되는 케이스: 제크로무↔블랙큐레무, 레시라무↔화이트큐레무는
+  // 서로의 전용기(크로스썬더/크로스플레임)를 공유하므로 예외적으로 같은 계열 취급
+  const FUSION_FAMILY = {zekrom:['kyurem-black'], reshiram:['kyurem-white'], kyurem:['zekrom','reshiram']};
+  if (FUSION_FAMILY[d.sp.name]) familyAll.push(...FUSION_FAMILY[d.sp.name]);
+
+  const baseVariety = d.sp.varieties.find(v=>v.is_default) || d.sp.varieties[0];
+  const baseData = baseVariety.pokemon.name === d.p.name ? d.p : await jget(baseVariety.pokemon.url);
+  const baseMoveNames = new Set(baseData.moves.map(mv=>mv.move.name));
+
+  const otherVarieties = d.sp.varieties.filter(v => v.pokemon.name !== d.p.name);
+  const otherMoveLists = await Promise.all(otherVarieties.map(async v => {
+    try { const vp = await jget(v.pokemon.url); return vp.moves; } catch(e) { return []; }
+  }));
+  const seen = new Set();
+  const allMoveEntries = [];
+  [d.p.moves, ...otherMoveLists].flat().forEach(mv => {
+    if (!seen.has(mv.move.name)) { seen.add(mv.move.name); allMoveEntries.push(mv); }
+  });
+
+  const cands = allMoveEntries.filter(mv => mv.version_group_details.some(v => !['machine','tutor'].includes(v.move_learn_method.name))).slice(0,90);
+  const results = await Promise.all(cands.map(async mv => ({slug:mv.move.name, m:await getMove(mv.move.name), inBase: baseMoveNames.has(mv.move.name)})));
+  const sig = results.filter(({m, inBase}) => m && (
+       (m.learnedBy && m.learnedBy.length>0 && m.learnedBy.every(l => familyAll.some(f => l.name===f || l.name.startsWith(f+'-')))) // 완전 전용기
+    || !inBase // 기본 폼에는 없고 다른 폼(블랙/화이트 큐레무 등)에서만 배우는 폼 전용기
+  ));
+  return {family:familyAll, moves:sig.map(x=>x.m)};
+}
+
+async function loadForms(d) {
+  const vars = d.sp.varieties.slice(0,14);
+  const list = await Promise.all(vars.map(async v => {
+    try {
+      const vp = await jget(v.pokemon.url);
+      return {name:v.pokemon.name, img: vp.sprites.front_default || vp.sprites.other['official-artwork'].front_default};
+    } catch(e){ return null; }
+  }));
+  const forms = list.filter(x=>x&&x.img);
+  const female = d.p.sprites.front_female;
+  return {forms, female, total:d.sp.varieties.length};
+}
+
+async function loadMega(d) {
+  const baseVariety = d.sp.varieties.find(v=>v.is_default) || d.sp.varieties[0];
+  const baseData = baseVariety.pokemon.name === d.p.name ? d.p : await jget(baseVariety.pokemon.url);
+  const baseStats = baseData.stats.map(s=>s.base_stat);
+  const others = d.sp.varieties.filter(v => v.pokemon.name !== baseVariety.pokemon.name);
+  if (!others.length) return {none:true};
+  const fetched = await Promise.all(others.map(async v => {
+    try {
+      const vp = await jget(v.pokemon.url);
+      const stats = vp.stats.map(s=>s.base_stat);
+      const differs = stats.some((s,i) => s !== baseStats[i]);
+      if (!differs) return null; // 스탯이 같은 폼(거다이맥스, 색만 다른 폼 등)은 제외
+      return {name:v.pokemon.name, img: vp.sprites.other['official-artwork'].front_default || vp.sprites.front_default,
+              stats: vp.stats.map(s=>({k:s.stat.name, v:s.base_stat}))};
+    } catch(e) { return null; }
+  }));
+  const megas = fetched.filter(Boolean);
+  if (!megas.length) return {none:true};
+  return {megas, baseName: baseVariety.pokemon.name};
+}
+
+async function loadGmax(d) {
+  const g = d.sp.varieties.find(v=>v.pokemon.name.endsWith('-gmax'));
+  if (!g) return {none:true};
+  const vp = await jget(g.pokemon.url);
+  return {img: vp.sprites.other['official-artwork'].front_default || vp.sprites.front_default,
+          move: GMAX_MOVES[d.sp.name] || null};
+}
+
+async function loadZ(d) {
+  const slugs = Z_MOVES[d.sp.name];
+  if (!slugs) return {none:true};
+  const moves = (await Promise.all(slugs.map(getMove))).filter(Boolean);
+  return {moves};
+}
+
+const LOADERS = {moves:loadMoves, items:loadItems, sig:loadSig, forms:loadForms, mega:loadMega, gmax:loadGmax, zmove:loadZ};
+
+function render(d) {
+  const {p, sp, mult, abilities} = d;
+  const koName = sp.names.find(n => n.language.name === 'ko')?.name ?? p.name;
+  const genus = sp.genera.find(g => g.language.name === 'ko')?.genus ?? '';
+  let html = '';
+  const loadingCard = (title) => `<div class="card"><h2>${title}</h2><div class="mini-loading">불러오는 중...</div></div>`;
+
+  if (sections.basic) {
+    const img = p.sprites.other['official-artwork'].front_default || p.sprites.front_default;
+    html += `<div class="card"><h2>기본 정보</h2>
+      <div class="profile">
+        <div class="sprite-box"><img src="${img}" alt="${koName}"></div>
+        <div class="profile-info">
+          <div class="dex-no pixel">No.${String(sp.id).padStart(4,'0')}</div>
+          <div class="name">${koName}</div>
+          <div class="genus">${genus}</div>
+          <div class="type-chips">${p.types.map(t=>tchip(t.type.name)).join('')}</div>
+          <div class="meta">
+            <span>키 <b>${(p.height/10).toFixed(1)}m</b></span>
+            <span>몸무게 <b>${(p.weight/10).toFixed(1)}kg</b></span>
+            <span>특성 <b>${abilities.map(a=>a.name+(a.hidden?' (숨겨진 특성)':'')).join(', ')}</b></span>
+          </div>
+        </div>
+      </div></div>`;
+  }
+
+  if (sections.stats) {
+    const rows = p.stats.map(s => {
+      const v = s.base_stat;
+      return `<div class="stat-row"><span class="sname">${STAT_KO[s.stat.name]}</span><span class="sval">${v}</span>
+        <div class="bar"><i data-w="${Math.min(v/180*100,100)}" style="background:${statColor(v)}"></i></div></div>`;
+    }).join('');
+    const total = p.stats.reduce((a,s)=>a+s.base_stat,0);
+    html += `<div class="card"><h2>종족치</h2>${rows}<div class="total-row"><span>합계</span><b>${total}</b></div></div>`;
+  }
+
+  if (sections.def) {
+    const buckets = [{m:4,cls:'m4',label:'×4'},{m:2,cls:'m2',label:'×2'},{m:1,cls:'m1',label:'×1'},{m:0.5,cls:'m05',label:'×0.5'},{m:0.25,cls:'m025',label:'×0.25'},{m:0,cls:'m0',label:'×0'}];
+    const shelves = buckets.map(b => {
+      const ts = ALL_TYPES.filter(t => mult[t] === b.m);
+      return ts.length ? `<div class="eff-shelf"><span class="mult ${b.cls}">${b.label}</span><div class="eff-types">${ts.map(t=>tchip(t)).join('')}</div></div>` : '';
+    }).join('');
+    html += `<div class="card"><h2>방어 상성 <span class="note">(특성 미적용)</span></h2>${shelves}</div>`;
+  }
+
+  if (sections.moves) {
+    const x = d.extra.moves;
+    if (x === undefined) { html += loadingCard('자주 쓰는 기술'); ensure('moves', LOADERS.moves); }
+    else if (x.error || x.mode==='none') html += `<div class="card"><h2>자주 쓰는 기술</h2><p class="empty">기술 데이터를 불러오지 못했어요.</p></div>`;
+    else if (x.mode==='smogon') {
+      html += `<div class="card"><h2>자주 쓰는 기술 <span class="note">Smogon 실전 세트 기준 (${x.formats.join(', ')})</span></h2>
+        <div class="move-list">${x.moves.map(({c,m,en}) => m ? moveRow(m, `<span class="freq">채용 ${c}회</span>`) : moveRow({ko:en,type:'normal',power:null,cls:null})).join('')}</div></div>`;
+    } else {
+      html += `<div class="card"><h2>자주 쓰는 기술 <span class="note">실전 데이터가 없어 레벨업 기술로 대체 (${x.vg})</span></h2>
+        <div class="move-list">${x.moves.map(({level,m}) => m ? moveRow(m, `<span class="freq">Lv.${level||'—'}</span>`) : '').join('')}</div></div>`;
+    }
+  }
+
+  if (sections.items) {
+    const x = d.extra.items;
+    if (x === undefined) { html += loadingCard('자주 쓰는 도구'); ensure('items', LOADERS.items); }
+    else if (x.error || x.mode==='none') html += `<div class="card"><h2>자주 쓰는 도구</h2><p class="empty">실전 사용 데이터가 없어요. (경쟁전에 자주 나오지 않는 포켓몬일 수 있어요)</p></div>`;
+    else {
+      html += `<div class="card"><h2>자주 쓰는 도구 <span class="note">Smogon 실전 세트 기준 (${x.formats.join(', ')})</span></h2>
+        <div class="move-list">${x.items.map(({c,it,en}) => `
+          <div class="move-row">
+            ${it&&it.sprite?`<img class="item-icon" src="${it.sprite}" alt="">`:''}
+            <span class="mname">${it?it.ko:en}</span>
+            <span class="freq">채용 ${c}회</span>
+          </div>`).join('')}</div></div>`;
+    }
+  }
+
+  if (sections.sig) {
+    const x = d.extra.sig;
+    if (x === undefined) { html += loadingCard('전용기'); ensure('sig', LOADERS.sig); }
+    else if (x.error) html += `<div class="card"><h2>전용기</h2><p class="empty">전용기 판별에 실패했어요.</p></div>`;
+    else if (!x.moves.length) html += `<div class="card"><h2>전용기</h2><p class="empty">이 진화 계열만 배우는 기술이 없어요. (레벨업·유전·이벤트 기술 기준)</p></div>`;
+    else html += `<div class="card"><h2>전용기 <span class="note">이 진화 계열만 배우는 기술</span></h2>
+      <div class="move-list">${x.moves.map(m => moveRow(m, `<span class="sig-badge">전용</span>`)).join('')}</div></div>`;
+  }
+
+  if (sections.forms) {
+    const x = d.extra.forms;
+    if (x === undefined) { html += loadingCard('모습'); ensure('forms', LOADERS.forms); }
+    else if (x.error) html += `<div class="card"><h2>모습</h2><p class="empty">폼 데이터를 불러오지 못했어요.</p></div>`;
+    else {
+      let cells = x.forms.map(f => `<div class="form-cell"><img src="${f.img}" alt="${f.name}" loading="lazy"><div class="fname">${formLabel(f.name, sp.name)}</div></div>`).join('');
+      if (x.female) cells += `<div class="form-cell"><img src="${x.female}" alt="암컷" loading="lazy"><div class="fname">암컷 (성별 차이)</div></div>`;
+      const more = x.total > x.forms.length ? `<p class="empty" style="margin-top:10px">외 ${x.total - x.forms.length}종의 모습이 더 있어요.</p>` : '';
+      html += `<div class="card"><h2>모습</h2><div class="form-grid">${cells}</div>${more}</div>`;
+    }
+  }
+
+  if (sections.abil) {
+    html += `<div class="card"><h2>특성</h2>${abilities.map(a => `
+      <div class="abil">
+        <div class="aname">${a.name} ${a.hidden?'<span class="hidden-badge">숨겨진 특성</span>':''}</div>
+        <div class="adesc">${a.desc || '설명 없음'}</div>
+      </div>`).join('')}</div>`;
+  }
+
+  if (sections.mega) {
+    const x = d.extra.mega;
+    if (x === undefined) { html += loadingCard('폼별 종족값'); ensure('mega', LOADERS.mega); }
+    else if (x.error) html += `<div class="card"><h2>폼별 종족값</h2><p class="empty">데이터를 불러오지 못했어요.</p></div>`;
+    else if (x.none) html += `<div class="card"><h2>폼별 종족값</h2><p class="empty">${koName}은(는) 종족값이 다른 폼(메가진화 등)이 없어요.</p></div>`;
+    else {
+      const baseStats = p.stats.map(s=>({k:s.stat.name, v:s.base_stat}));
+      const FORM_COLORS = ['#E3350D','#2A6BD4','#3FA129','#9141CB','#E7B10A','#60A1B8'];
+      const maxScale = Math.max(200, ...x.megas.flatMap(m=>m.stats.map(s=>s.v)));
+      const imgs = x.megas.map(m=>m.img?`<img src="${m.img}" alt="${m.name}">`:'').join('');
+      const legend = `<div class="mega-legend">
+        ${x.megas.map((m,mi)=>`<span class="lg"><i style="background:${FORM_COLORS[mi%FORM_COLORS.length]}"></i>${formLabel(m.name, sp.name)}</span>`).join('')}
+      </div>`;
+      const blocks = x.megas.map((m,mi) => {
+        const tag = formLabel(m.name, sp.name).replace(/^메가 /,'');
+        const statBars = baseStats.map((bs,i) => {
+          const mv = m.stats[i].v, diff = mv-bs.v;
+          const w = Math.min(mv/maxScale*100, 100);
+          const cls = diff>0?'up':diff<0?'down':'same';
+          const sign = diff>0?'+':'';
+          return `<div class="mbar-row"><span class="mtag">${STAT_KO[bs.k]}</span><span class="mval">${mv}<span class="delta d ${cls}">${sign}${diff}</span></span><div class="bar"><i data-w="${w}" style="background:${FORM_COLORS[mi%FORM_COLORS.length]}"></i></div></div>`;
+        }).join('');
+        return `<div class="mstat-block"><div class="mlabel" style="color:${FORM_COLORS[mi%FORM_COLORS.length]}">${tag}</div>${statBars}</div>`;
+      }).join('');
+      const bTot = baseStats.reduce((a,s)=>a+s.v,0);
+      const totalBoxes = `<div class="mega-total">
+        ${x.megas.map((m,mi)=>{ const t=m.stats.reduce((a,s)=>a+s.v,0); const tag=formLabel(m.name,sp.name);
+          return `<div class="tbox"><div class="tlabel">${tag}</div><div class="tval" style="color:${FORM_COLORS[mi%FORM_COLORS.length]}">${t}<span class="delta d ${t-bTot>=0?'up':'down'}">${t-bTot>=0?'+':''}${t-bTot}</span></div></div>`; }).join('')}
+      </div>`;
+      html += `<div class="card"><h2>폼별 종족값</h2>
+        <div class="mega-head">${imgs}</div>
+        ${legend}${blocks}${totalBoxes}</div>`;
+    }
+  }
+
+  if (sections.gmax) {
+    const x = d.extra.gmax;
+    if (x === undefined) { html += loadingCard('거다이맥스'); ensure('gmax', LOADERS.gmax); }
+    else if (x.error) html += `<div class="card"><h2>거다이맥스</h2><p class="empty">데이터를 불러오지 못했어요.</p></div>`;
+    else if (x.none) html += `<div class="card"><h2>거다이맥스</h2><p class="empty">${koName}은(는) 거다이맥스가 없어요.</p></div>`;
+    else html += `<div class="card"><h2>거다이맥스</h2>
+      <div class="gmax-wrap">
+        ${x.img?`<img src="${x.img}" alt="거다이맥스">`:''}
+        <div>
+          <div style="font-weight:800;font-size:16px;margin-bottom:4px">거다이맥스 ${koName}</div>
+          ${x.move?`<div class="zdetail" style="font-size:13px;color:var(--sub)">전용 거다이맥스 기술: <b style="color:var(--ink)">${x.move}</b></div>
+          <a class="wiki-link" href="https://namu.wiki/Search?q=${encodeURIComponent(x.move)}" target="_blank" rel="noopener">나무위키에서 자세히 보기 ↗</a>`:''}
+        </div>
+      </div></div>`;
+  }
+
+  if (sections.zmove) {
+    const x = d.extra.zmove;
+    if (x === undefined) { html += loadingCard('전용 Z기술'); ensure('zmove', LOADERS.zmove); }
+    else if (x.error) html += `<div class="card"><h2>전용 Z기술</h2><p class="empty">데이터를 불러오지 못했어요.</p></div>`;
+    else if (x.none || !x.moves.length) html += `<div class="card"><h2>전용 Z기술</h2><p class="empty">${koName}의 전용 Z기술은 없어요. (범용 Z기술은 사용 가능)</p></div>`;
+    else html += `<div class="card"><h2>전용 Z기술</h2>${x.moves.map(m=>`
+      <div class="zmove">${tchip(m.type)}
+        <div><div class="zname">${m.ko}</div>
+        <div class="zdetail">${m.cls?CLASS_KO[m.cls]+' · ':''}위력 ${m.power ?? '—'}</div>
+        <a class="wiki-link" href="https://namu.wiki/Search?q=${encodeURIComponent(m.ko)}" target="_blank" rel="noopener">나무위키에서 자세히 보기 ↗</a></div>
+      </div>`).join('')}</div>`;
+  }
+
+  if (sections.flavor) {
+    const entries = sp.flavor_text_entries.filter(f => f.language.name === 'ko');
+    const fl = entries.length ? entries[entries.length-1] : null;
+    html += `<div class="card"><h2>도감 설명</h2>
+      ${fl ? `<p class="flavor">${fl.flavor_text.replace(/\s+/g,' ')}</p><p class="flavor ver">— ${fl.version.name} 버전</p>`
+           : `<p class="flavor" style="color:var(--sub)">한국어 도감 설명이 없어요.</p>`}</div>`;
+  }
+
+  if (!html) html = `<div class="status">표시할 정보를 위에서 하나 이상 선택해 주세요.</div>`;
+  out.innerHTML = html;
+  requestAnimationFrame(() => {
+    out.querySelectorAll('.bar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
+  });
+}
+</script>
+</body>
+</html>
