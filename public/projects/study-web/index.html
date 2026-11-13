@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>공부 웹사이트</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="portfolio-link" href="/">← 포트폴리오로 돌아가기</a>
+  <header class="site-header">
+    <button type="button" id="back-btn" class="back-btn" hidden>← 뒤로</button>
+    <h1 id="page-title">공부 웹사이트</h1>
+  </header>
+
+  <main id="app"></main>
+
+  <!-- 1) 데이터 파일을 먼저 읽는다 -->
+  <script src="data/subjects.js"></script>
+  <script src="data/korean/pos-hints.js"></script>
+  <script src="data/korean/spacing.js"></script>
+  <script src="data/korean/pos.js"></script>
+  <script src="data/korean/generators.js"></script>
+  <script src="data/social/culture.js"></script>
+  <script src="data/social/democracy.js"></script>
+
+  <!-- 2) 그다음 화면 코드를 읽는다 (app.js는 맨 마지막) -->
+  <script src="js/util.js"></script>
+  <script src="js/hangul.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/question-pool.js"></script>
+  <script src="js/quiz-choice.js"></script>
+  <script src="js/quiz-pos.js"></script>
+  <script src="js/wrong-note.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
