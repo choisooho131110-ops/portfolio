@@ -22,6 +22,16 @@ window.SUBJECTS = [
       { id: "democracy", name: "민주주의와 시민",   type: "choice", bank: "social/democracy" },
       { id: "all",       name: "전체 섞어 풀기",    type: "choice", bank: ["social/culture", "social/democracy"] }
     ]
+  },
+  {
+    id: "science",
+    name: "과학",
+    icon: "🔬",
+    topics: [
+      { id: "gas-state", name: "기체의 성질과 상태 변화", type: "choice", bank: "science/gas-state" },
+      { id: "solar",     name: "태양계",                 type: "choice", bank: "science/solar-system" },
+      { id: "all",       name: "전체 섞어 풀기",          type: "choice", bank: ["science/gas-state", "science/solar-system"] }
+    ]
   }
   // 나중에: { id: "math", name: "수학", icon: "📐", topics: [...] }
 ];
