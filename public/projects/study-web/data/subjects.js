@@ -39,10 +39,16 @@ window.SUBJECTS = [
     name: "영어",
     icon: "🔤",
     topics: [
-      { id: "to-infinitive", name: "to부정사의 부사적 용법", type: "choice", bank: "english/to-infinitive" },
-      { id: "time-clause",   name: "시간 부사절",           type: "choice", bank: "english/time-clause" },
-      { id: "dative-verb",   name: "수여동사",              type: "choice", bank: "english/dative-verb" },
-      { id: "all",           name: "전체 섞어 풀기",         type: "choice", bank: ["english/to-infinitive", "english/time-clause", "english/dative-verb"] }
+      { id: "to-infinitive",      name: "to부정사의 부사적 용법",        type: "choice", bank: "english/to-infinitive" },
+      { id: "to-infinitive-hard", name: "to부정사의 부사적 용법 · 심화", type: "choice", bank: "english/to-infinitive-hard" },
+      { id: "time-clause",        name: "시간 부사절",                  type: "choice", bank: "english/time-clause" },
+      { id: "time-clause-hard",   name: "시간 부사절 · 심화",           type: "choice", bank: "english/time-clause-hard" },
+      { id: "dative-verb",        name: "수여동사",                     type: "choice", bank: "english/dative-verb" },
+      { id: "dative-verb-hard",   name: "수여동사 · 심화",              type: "choice", bank: "english/dative-verb-hard" },
+      { id: "all",                name: "전체 섞어 풀기",                type: "choice",
+        bank: ["english/to-infinitive", "english/to-infinitive-hard", "english/time-clause", "english/time-clause-hard", "english/dative-verb", "english/dative-verb-hard"] },
+      { id: "hard-all",           name: "심화만 섞어 풀기",              type: "choice",
+        bank: ["english/to-infinitive-hard", "english/time-clause-hard", "english/dative-verb-hard"] }
     ]
   }
   // 나중에: { id: "math", name: "수학", icon: "📐", topics: [...] }
