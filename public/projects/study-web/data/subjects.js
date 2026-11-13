@@ -33,6 +33,17 @@ window.SUBJECTS = [
       { id: "solar",     name: "태양계",                 type: "choice", bank: "science/solar-system" },
       { id: "all",       name: "전체 섞어 풀기",          type: "choice", bank: ["science/gas-state", "science/solar-system"] }
     ]
+  },
+  {
+    id: "english",
+    name: "영어",
+    icon: "🔤",
+    topics: [
+      { id: "to-infinitive", name: "to부정사의 부사적 용법", type: "choice", bank: "english/to-infinitive" },
+      { id: "time-clause",   name: "시간 부사절",           type: "choice", bank: "english/time-clause" },
+      { id: "dative-verb",   name: "수여동사",              type: "choice", bank: "english/dative-verb" },
+      { id: "all",           name: "전체 섞어 풀기",         type: "choice", bank: ["english/to-infinitive", "english/time-clause", "english/dative-verb"] }
+    ]
   }
   // 나중에: { id: "math", name: "수학", icon: "📐", topics: [...] }
 ];
