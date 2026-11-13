@@ -18,9 +18,10 @@ window.SUBJECTS = [
     name: "사회",
     icon: "🌏",
     topics: [
-      { id: "culture",   name: "다양한 문화의 이해", type: "choice", bank: "social/culture" },
-      { id: "democracy", name: "민주주의와 시민",   type: "choice", bank: "social/democracy" },
-      { id: "all",       name: "전체 섞어 풀기",    type: "choice", bank: ["social/culture", "social/democracy"] }
+      { id: "culture",       name: "다양한 문화의 이해",   type: "choice", bank: "social/culture" },
+      { id: "democracy",     name: "민주주의와 시민",     type: "choice", bank: "social/democracy" },
+      { id: "participation", name: "정치 과정과 시민 참여", type: "choice", bank: "social/participation" },
+      { id: "all",           name: "전체 섞어 풀기",      type: "choice", bank: ["social/culture", "social/democracy", "social/participation"] }
     ]
   },
   {
